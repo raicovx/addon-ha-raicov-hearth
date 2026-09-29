@@ -12,6 +12,14 @@ fi
 
 export EXPOSED_PORT=$(bashio::addon.port "8099/tcp")
 
+# optional HTTPS on 8443, beside the plain port Ingress keeps using
+if bashio::config.true 'ssl'; then
+    bashio::config.require.ssl
+    export SSL_CERTFILE="/ssl/$(bashio::config 'certfile')"
+    export SSL_KEYFILE="/ssl/$(bashio::config 'keyfile')"
+    export SSL_PORT=8443
+fi
+
 echo "Starting Hearth..."
 
 node server.js

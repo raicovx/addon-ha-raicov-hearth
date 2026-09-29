@@ -37,6 +37,25 @@ Home Assistant address for proxy requests.
 
 This option is available from version `0.1.1`.
 
+## HTTPS and the default dashboard
+
+An HTTPS Home Assistant cannot embed Hearth's plain HTTP port. To use Hearth as a
+Webpage dashboard, for example as the default dashboard in the companion app,
+serve it over HTTPS with the certificate Home Assistant already uses:
+
+1. Turn on **HTTPS** and set a host port for `8443/tcp`. The certificate and key
+   default to `fullchain.pem` and `privkey.pem` in `/ssl`, where the DuckDNS and
+   Let's Encrypt add-ons put them.
+2. Set **Home Assistant URL for direct access** to the HTTPS Home Assistant URL,
+   such as `https://example.duckdns.org:8123`, and restart the add-on.
+3. Open `https://example.duckdns.org:8443`, and under Application settings save a
+   long-lived access token. The companion app and embedded pages cannot sign in
+   through Home Assistant's login page.
+4. In Home Assistant, add a Webpage dashboard for
+   `https://example.duckdns.org:8443/?menu=false` and set it as the default.
+
+The plain port and Ingress keep working alongside it.
+
 ## How it builds
 
 The add-on does not build Hearth itself. It copies the app out of the image that ha-raicov-hearth's `docker-publish` workflow pushes to `ghcr.io/raicovx/ha-raicov-hearth`, onto pinned Home Assistant base images, and publishes `ghcr.io/raicovx/addon-ha-raicov-hearth-{arch}` for `aarch64` and `amd64`. All three add-ons share these images: stable versions are also tagged `latest`, betas `beta` and edge builds `edge`.

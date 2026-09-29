@@ -29,14 +29,25 @@ ingress_stream: true
 # enable api to get host port
 hassio_api: true
 
-# port to expose, null defaults to disabled
+# ports to expose, null defaults to disabled; 8443 serves HTTPS when ssl is on
 ports:
   8099/tcp: null
+  8443/tcp: null
+
+# certificates for the optional HTTPS port
+map:
+  - type: ssl
 
 # Browser-facing Home Assistant URL for direct-port access.
-options: {}
+options:
+  ssl: false
+  certfile: fullchain.pem
+  keyfile: privkey.pem
 schema:
   hass_public_url: url?
+  ssl: bool
+  certfile: str
+  keyfile: str
 
 # published by .github/workflows/publish.yml
 image: ghcr.io/raicovx/addon-ha-raicov-hearth-{arch}
