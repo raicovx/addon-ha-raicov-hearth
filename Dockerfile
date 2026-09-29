@@ -1,35 +1,23 @@
 # ha base image
 ARG BUILD_FROM
 
-# Build the architecture-independent web bundle natively. Building it in the
-# target architecture under QEMU can stall or crash as the bundle grows.
-FROM --platform=$BUILDPLATFORM node:24 AS builder
-WORKDIR /app
+# The Hearth app image published by ha-raicov-hearth's docker-publish
+# workflow. Release builds pass the matching version tag, edge builds pass the
+# master image pinned by digest. Its bundle and production deps are plain JS,
+# so either platform variant works on both add-on architectures.
+ARG HEARTH_IMAGE=ghcr.io/raicovx/ha-raicov-hearth:latest
 
-# ha builder passes BUILD_VERSION from config.yaml, so the addon builds the
-# matching ha-hearth release tag instead of whatever master happens to be.
-# Edge builds set HEARTH_REF to a master commit instead.
-ARG BUILD_VERSION
-ARG HEARTH_REF=${BUILD_VERSION}
-
-RUN git init -q . && \
-  git fetch -q --depth 1 https://github.com/knowald/ha-hearth "${HEARTH_REF}" && \
-  git checkout -q FETCH_HEAD && \
-  npm install -g pnpm && \
-  pnpm install --frozen-lockfile && \
-  pnpm run build && \
-  pnpm prune --prod && \
-  rm -rf ./data/*
+FROM ${HEARTH_IMAGE} AS hearth
 
 # second stage
 FROM $BUILD_FROM
 WORKDIR /rootfs
 
 # copy files to /rootfs
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/server.js .
-COPY --from=builder /app/package.json .
+COPY --from=hearth /app/build ./build
+COPY --from=hearth /app/node_modules ./node_modules
+COPY --from=hearth /app/server.js .
+COPY --from=hearth /app/package.json .
 
 # copy run
 COPY run.sh /

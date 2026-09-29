@@ -1,12 +1,12 @@
-# addon-ha-hearth
+# addon-ha-raicov-hearth
 
-Home Assistant add-on for [Hearth](https://github.com/knowald/ha-hearth), a dashboard for wall tablets, phones and desktops.
+Home Assistant add-on for [ha-raicov-hearth](https://github.com/raicovx/ha-raicov-hearth), a fork of [Hearth](https://github.com/knowald/ha-hearth), a dashboard for wall tablets, phones and desktops. It is forked from [addon-ha-hearth](https://github.com/knowald/addon-ha-hearth) and uses its own slugs, so it installs alongside the original.
 
 ## Install
 
-[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fknowald%2Faddon-ha-hearth)
+[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fraicovx%2Faddon-ha-raicov-hearth)
 
-To add the repository by hand, open Settings, Add-ons, Add-on Store, then Repositories from the overflow menu, and paste `https://github.com/knowald/addon-ha-hearth`. Install Hearth from the store once the repository is listed, then start it.
+To add the repository by hand, open Settings, Add-ons, Add-on Store, then Repositories from the overflow menu, and paste `https://github.com/raicovx/addon-ha-raicov-hearth`. Install Hearth from the store once the repository is listed, then start it.
 
 Hearth appears in the sidebar and is served over Ingress. Setting a port in the add-on configuration exposes it directly as well, which is what wall tablets should use. Dashboard configuration is stored on the add-on's own volume and survives updates.
 
@@ -16,7 +16,7 @@ The repository offers three add-ons. Each has its own data, so they can run side
 
 - **Hearth** tracks stable Hearth releases.
 - **Hearth (beta)** tracks Hearth prereleases and falls back to the stable version between betas.
-- **Hearth (edge)** tracks the Hearth development branch. It updates at most once a day, only after that commit's checks pass, and may break without notice.
+- **Hearth (edge)** tracks the `master` image of ha-raicov-hearth. It updates at most once a day, or sooner when the workflow is run by hand, and may break without notice.
 
 ## Direct access
 
@@ -39,15 +39,17 @@ This option is available from version `0.1.1`.
 
 ## How it builds
 
-`version` in `config.yaml` names the `ha-hearth` tag the image is built from, so the add-on and the application move together. Publishing a matching GitHub release builds `ghcr.io/knowald/addon-ha-hearth-{arch}` for `aarch64` and `amd64` against pinned Home Assistant base images. All three add-ons share these images: stable versions are also tagged `latest`, betas `beta` and edge builds `edge`.
+The add-on does not build Hearth itself. It copies the app out of the image that ha-raicov-hearth's `docker-publish` workflow pushes to `ghcr.io/raicovx/ha-raicov-hearth`, onto pinned Home Assistant base images, and publishes `ghcr.io/raicovx/addon-ha-raicov-hearth-{arch}` for `aarch64` and `amd64`. All three add-ons share these images: stable versions are also tagged `latest`, betas `beta` and edge builds `edge`.
 
-The edge add-on is built by the same workflow on a nightly schedule. It reads the newest `master` commit of `ha-hearth`, skips it unless its CI passed or it is already published, builds it as `<hearth version>-edge.<commit>`, and then commits that version to `edge/config.yaml` so the Supervisor offers the update only once both images exist. Run the workflow by hand with the `edge` channel to publish sooner.
+`version` in `config.yaml` names the ha-raicov-hearth image tag a release packages, which `docker-publish` creates when a ha-raicov-hearth GitHub release with that tag is published.
 
-The published container packages must be public for the Supervisor to pull them. GitHub creates them private on the first push; change that once per package under Packages, Package settings, Change visibility. Later pushes keep the setting.
+The edge add-on is built by the same workflow on a nightly schedule. It reads the `master` image that `docker-publish` last pushed from a manual run on `master`, pins it by digest, builds it as `<hearth version>-edge.<commit>`, and then commits that version to `edge/config.yaml` so the Supervisor offers the update only once both images exist. It skips an image it has already published. Run the workflow by hand with the `edge` channel to publish sooner.
+
+The published container packages, including `ha-raicov-hearth` itself, must be public for this workflow and the Supervisor to pull them. GitHub creates them private on the first push; change that once per package under Packages, Package settings, Change visibility. Later pushes keep the setting.
 
 ## Releasing
 
-Publish the matching Hearth source tag first. Then update `version` in `config.yaml`
+Publish the matching ha-raicov-hearth release first and wait for its `docker-publish` run. Then update `version` in `config.yaml`
 and `CHANGELOG.md`, push the changes, and publish a GitHub release with that exact
 tag (no `v` prefix). The workflow verifies that the tag matches the configured
 version and publishes both architecture images. Ordinary pushes do not publish

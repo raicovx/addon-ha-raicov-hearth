@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: "release rebuilds the selected tag, edge builds Hearth master"
+        description: "release rebuilds the selected tag, edge packages the latest ha-raicov-hearth master image"
         type: choice
         options: [release, edge]
         default: release
@@ -27,7 +27,7 @@ jobs:
     outputs:
       channel: ${{ steps.version.outputs.channel }}
       version: ${{ steps.version.outputs.version }}
-      ref: ${{ steps.version.outputs.ref }}
+      hearth_image: ${{ steps.version.outputs.hearth_image }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
@@ -48,18 +48,18 @@ jobs:
             grep -m1 '^version:' "$1" | sed -E 's/^version:[[:space:]]*//'
           }
 
-          # edge follows Hearth master, but only commits whose CI passed
+          # edge follows the master image ha-raicov-hearth's docker-publish
+          # last pushed, pinned by digest so the build cannot race a new push
           if [[ "$EDGE" == "true" ]]; then
-            commit=$(gh api repos/knowald/ha-hearth/commits/master --jq .sha)
-            short=${commit:0:7}
-            conclusion=$(gh api -X GET "repos/knowald/ha-hearth/commits/$commit/check-runs" \
-              -f check_name="Check, lint and build" --jq '.check_runs[0].conclusion // "missing"')
-            if [[ "$conclusion" != "success" ]]; then
-              echo "::notice::Hearth CI for $short is $conclusion, not publishing edge."
-              exit 0
+            image=ghcr.io/raicovx/ha-raicov-hearth
+            digest=$(docker buildx imagetools inspect "$image:master" --format '{{json .Manifest}}' | jq -r .digest)
+            commit=$(docker buildx imagetools inspect "$image@$digest" --format '{{json .Image}}' | jq -r '[.. | objects | .config?.Labels?["org.opencontainers.image.revision"]? // empty][0] // empty')
+            if [[ -z "$digest" || -z "$commit" ]]; then
+              echo "Could not read $image:master. Run docker-publish on master and make the package public." >&2
+              exit 1
             fi
-            hearth=$(gh api "repos/knowald/ha-hearth/contents/package.json?ref=$commit" \
-              -H "Accept: application/vnd.github.raw" | jq -r .version)
+            short=${commit:0:7}
+            hearth=$(gh api "repos/raicovx/ha-raicov-hearth/contents/package.json?ref=$commit" -H "Accept: application/vnd.github.raw" | jq -r .version)
             version="${hearth%%-*}-edge.$short"
             if [[ "$version" == "$(read_version edge/config.yaml)" ]]; then
               echo "::notice::Edge is already at $version."
@@ -68,7 +68,7 @@ jobs:
             {
               echo "channel=edge"
               echo "version=$version"
-              echo "ref=$commit"
+              echo "hearth_image=$image@$digest"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -97,7 +97,7 @@ jobs:
           {
             echo "channel=$channel"
             echo "version=$version"
-            echo "ref=$version"
+            echo "hearth_image=ghcr.io/raicovx/ha-raicov-hearth:$version"
           } >> "$GITHUB_OUTPUT"
 
   publish:
@@ -127,11 +127,11 @@ jobs:
         uses: home-assistant/builder/actions/build-image@4de35182ce1e329181bffcbcc84d33db5e2c7e10 # 2026.06.0
         with:
           arch: ${{ matrix.arch }}
-          image: ghcr.io/knowald/addon-ha-hearth-${{ matrix.arch }}
+          image: ghcr.io/raicovx/addon-ha-raicov-hearth-${{ matrix.arch }}
           version: ${{ needs.prepare.outputs.version }}
           build-args: |
             BUILD_FROM=${{ matrix.base }}
-            HEARTH_REF=${{ needs.prepare.outputs.ref }}
+            HEARTH_IMAGE=${{ needs.prepare.outputs.hearth_image }}
           container-registry: ghcr.io
           container-registry-username: ${{ github.actor }}
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}

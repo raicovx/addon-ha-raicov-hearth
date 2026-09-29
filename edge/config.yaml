@@ -1,8 +1,8 @@
 # required configuration options
-name: Hearth (edge)
-# set by .github/workflows/edge.yml to <hearth version>-edge.<commit>
+name: Hearth (raicov, edge)
+# set by .github/workflows/publish.yml to <hearth version>-edge.<commit>
 version: 0.5.1-edge.c9a01fa
-slug: ha_hearth_edge
+slug: ha_raicov_hearth_edge
 description: Nightly builds of the Hearth development branch, which may break without notice
 arch:
   - aarch64
@@ -12,7 +12,7 @@ arch:
 init: false
 
 # homepage of the add-on
-url: https://github.com/knowald/addon-ha-hearth
+url: https://github.com/raicovx/addon-ha-raicov-hearth
 
 # icon for the menu panel integration
 panel_icon: mdi:fireplace
@@ -40,4 +40,4 @@ schema:
   hass_public_url: url?
 
 # published by .github/workflows/publish.yml
-image: ghcr.io/knowald/addon-ha-hearth-{arch}
+image: ghcr.io/raicovx/addon-ha-raicov-hearth-{arch}
