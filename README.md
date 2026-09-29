@@ -16,7 +16,7 @@ The repository offers three add-ons. Each has its own data, so they can run side
 
 - **Hearth** tracks stable Hearth releases.
 - **Hearth (beta)** tracks Hearth prereleases and falls back to the stable version between betas.
-- **Hearth (edge)** tracks the `master` image of ha-raicov-hearth. It updates at most once a day, or sooner when the workflow is run by hand, and may break without notice.
+- **Hearth (edge)** tracks the `edge` image of ha-raicov-hearth, which its `docker-publish` workflow builds on every push to `master`. It updates at most once a day, or sooner when the workflow is run by hand, and may break without notice.
 
 ## Direct access
 
@@ -62,7 +62,7 @@ The add-on does not build Hearth itself. It copies the app out of the image that
 
 `version` in `config.yaml` names the ha-raicov-hearth image tag a release packages, which `docker-publish` creates when a ha-raicov-hearth GitHub release with that tag is published.
 
-The edge add-on is built by the same workflow on a nightly schedule. It reads the `master` image that `docker-publish` last pushed from a manual run on `master`, pins it by digest, builds it as `<hearth version>-edge.<commit>`, and then commits that version to `edge/config.yaml` so the Supervisor offers the update only once both images exist. It skips an image it has already published. Run the workflow by hand with the `edge` channel to publish sooner.
+The edge add-on is built by the same workflow on a nightly schedule. It reads the `edge` image that `docker-publish` builds on every push to ha-raicov-hearth `master`, pins it by digest, builds it as `<hearth version>-edge.<commit>`, and then commits that version to `edge/config.yaml` so the Supervisor offers the update only once both images exist. It skips an image it has already published. Run the workflow by hand with the `edge` channel to publish sooner.
 
 The published container packages, including `ha-raicov-hearth` itself, must be public for this workflow and the Supervisor to pull them. GitHub creates them private on the first push; change that once per package under Packages, Package settings, Change visibility. Later pushes keep the setting.
 

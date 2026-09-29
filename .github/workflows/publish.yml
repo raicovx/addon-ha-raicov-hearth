@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: "release rebuilds the selected tag, edge packages the latest ha-raicov-hearth master image"
+        description: "release rebuilds the selected tag, edge packages the latest ha-raicov-hearth edge image"
         type: choice
         options: [release, edge]
         default: release
@@ -48,14 +48,14 @@ jobs:
             grep -m1 '^version:' "$1" | sed -E 's/^version:[[:space:]]*//'
           }
 
-          # edge follows the master image ha-raicov-hearth's docker-publish
+          # edge follows the edge image ha-raicov-hearth's docker-publish
           # last pushed, pinned by digest so the build cannot race a new push
           if [[ "$EDGE" == "true" ]]; then
             image=ghcr.io/raicovx/ha-raicov-hearth
-            digest=$(docker buildx imagetools inspect "$image:master" --format '{{json .Manifest}}' | jq -r .digest)
+            digest=$(docker buildx imagetools inspect "$image:edge" --format '{{json .Manifest}}' | jq -r .digest)
             commit=$(docker buildx imagetools inspect "$image@$digest" --format '{{json .Image}}' | jq -r '[.. | objects | .config?.Labels?["org.opencontainers.image.revision"]? // empty][0] // empty')
             if [[ -z "$digest" || -z "$commit" ]]; then
-              echo "Could not read $image:master. Run docker-publish on master and make the package public." >&2
+              echo "Could not read $image:edge. Push to ha-raicov-hearth master so docker-publish builds it, and make the package public." >&2
               exit 1
             fi
             short=${commit:0:7}
