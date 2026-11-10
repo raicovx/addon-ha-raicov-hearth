@@ -62,7 +62,7 @@ The add-on does not build Hearth itself. It copies the app out of the image that
 
 `version` in `config.yaml` names the ha-raicov-hearth image tag a release packages, which `docker-publish` creates when a ha-raicov-hearth GitHub release with that tag is published.
 
-The edge add-on is built by the same workflow on a nightly schedule. It reads the `edge` image that `docker-publish` builds on every push to ha-raicov-hearth `master`, pins it by digest, builds it as `<hearth version>-edge.<commit>`, and then commits that version to `edge/config.yaml` so the Supervisor offers the update only once both images exist. It skips an image it has already published. Run the workflow by hand with the `edge` channel to publish sooner.
+The edge add-on is built by the same workflow on a nightly schedule. It reads the `edge` image that `docker-publish` builds on every push to ha-raicov-hearth `master`, pins it by digest, builds it as `<hearth version>-edge.<commit time>` (the commit's UTC committer time as `YYYYMMDDHHMMSS`, because Home Assistant only offers an update whose version compares as newer, and commit hashes have no order), and then commits that version to `edge/config.yaml` so the Supervisor offers the update only once both images exist. It skips an image it has already published. Run the workflow by hand with the `edge` channel to publish sooner.
 
 The published container packages, including `ha-raicov-hearth` itself, must be public for this workflow and the Supervisor to pull them. GitHub creates them private on the first push; change that once per package under Packages, Package settings, Change visibility. Later pushes keep the setting.
 

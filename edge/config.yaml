@@ -1,6 +1,6 @@
 # required configuration options
 name: Hearth (raicov, edge)
-# set by .github/workflows/publish.yml to <hearth version>-edge.<commit>
+# set by .github/workflows/publish.yml to <hearth version>-edge.<commit time, UTC YYYYMMDDHHMMSS>
 version: 0.5.1-edge.dc3ad19
 slug: ha_raicov_hearth_edge
 description: Nightly builds of the Hearth development branch, which may break without notice

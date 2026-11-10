@@ -27,6 +27,7 @@ jobs:
     outputs:
       channel: ${{ steps.version.outputs.channel }}
       version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.version.outputs.commit }}
       hearth_image: ${{ steps.version.outputs.hearth_image }}
     steps:
       - name: Checkout the repository
@@ -60,7 +61,17 @@ jobs:
             fi
             short=${commit:0:7}
             hearth=$(gh api "repos/raicovx/ha-raicov-hearth/contents/package.json?ref=$commit" -H "Accept: application/vnd.github.raw" | jq -r .version)
-            version="${hearth%%-*}-edge.$short"
+            # Home Assistant offers an update only when the new version compares
+            # as newer (AwesomeVersion), and commit hashes have no order, so the
+            # suffix is the commit's UTC committer time as one number
+            committed=$(gh api "repos/raicovx/ha-raicov-hearth/commits/$commit" --jq .commit.committer.date)
+            stamp=$(date -u -d "$committed" +%Y%m%d%H%M%S)
+            if [[ -z "$hearth" || "$hearth" == "null" || -z "$stamp" ]]; then
+              echo "Could not read the version or commit time of ha-raicov-hearth $short." >&2
+              exit 1
+            fi
+            version="${hearth%%-*}-edge.$stamp"
+            echo "::notice::Edge $version is ha-raicov-hearth $short."
             if [[ "$version" == "$(read_version edge/config.yaml)" ]]; then
               echo "::notice::Edge is already at $version."
               exit 0
@@ -68,6 +79,7 @@ jobs:
             {
               echo "channel=edge"
               echo "version=$version"
+              echo "commit=$short"
               echo "hearth_image=$image@$digest"
             } >> "$GITHUB_OUTPUT"
             exit 0
@@ -159,9 +171,10 @@ jobs:
       - name: Commit the edge version
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
+          COMMIT: ${{ needs.prepare.outputs.commit }}
         run: |
           sed -i -E "s/^version:.*/version: $VERSION/" edge/config.yaml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore(edge): track ha-hearth $VERSION"
+          git commit -am "chore(edge): track ha-hearth $VERSION ($COMMIT)"
           git push
